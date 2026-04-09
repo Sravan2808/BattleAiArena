@@ -1,35 +1,18 @@
 import React, { useState } from 'react';
 import { ChatList } from '../components/ChatList';
+import axios from 'axios';
 
 // Dummy data for simulation
-const generateDummyResponse = (problem) => {
+const  generateDummyResponse = (problem,result) => {
   return {
     problem,
-    solution_1: `Here is a solution using standard iteration:
-\`\`\`javascript
-function calculateFactorial(n) {
-  if (n === 0 || n === 1) return 1;
-  let result = 1;
-  for (let i = 2; i <= n; i++) {
-    result *= i;
-  }
-  return result;
-}
-\`\`\`
-This method is efficient and avoids stack overflow issues.`,
-    solution_2: `A more elegant approach using recursion:
-\`\`\`javascript
-function calculateFactorial(n) {
-  if (n === 0 || n === 1) return 1;
-  return n * calculateFactorial(n - 1);
-}
-\`\`\`
-Recursion is cleaner, though it might hit recursion depth limits for very large numbers.`,
+    solution_1:result.solution_1,
+    solution_2: result.solution_2,
     judge: {
-      solution_1_score: 9,
-      solution_2_score: 8,
-      solution_1_feedback: "Excellent iterative approach. It is O(n) time complexity and O(1) space complexity. Very robust.",
-      solution_2_feedback: "The recursive approach is mathematically elegant and easy to read. However, its O(n) space complexity makes it less optimal for production systems dealing with huge inputs."
+      solution_1_score: result.judge.solution_1_score,
+      solution_2_score: result.judge.solution_2_score,
+      solution_1_feedback: result.judge.solution_1_feedback,
+      solution_2_feedback: result.judge.solution_2_feedback
     }
   };
 };
@@ -39,7 +22,7 @@ const App = () => {
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
 
-  const handleSend = (e) => {
+  const handleSend = async (e) => {
     e.preventDefault();
     if (!inputValue.trim()) return;
 
@@ -50,17 +33,26 @@ const App = () => {
     setMessages(prev => [...prev, { problem: newProblem }]);
     setIsTyping(true);
 
-    // Simulate network delay
-    setTimeout(() => {
-      const response = generateDummyResponse(newProblem);
+    try {
+      const response = await axios.post("http://localhost:3000/invoke", {
+        input: newProblem
+      });
+
+      const data = response.data;
+      console.log(data.result);
+
+      const finalResponse = generateDummyResponse(newProblem, data.result);
       setMessages(prev => {
         const newMessages = [...prev];
         // replace the last pending message with full response
-        newMessages[newMessages.length - 1] = response;
+        newMessages[newMessages.length - 1] = finalResponse;
         return newMessages;
       });
+    } catch (error) {
+      console.error("Error fetching comparison:", error);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   return (
